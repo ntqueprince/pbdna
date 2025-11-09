@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Policybazaar Leadership Team - Interactive Learning</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="hero">
+        <h1>🎯 Policybazaar Leadership Team</h1>
+        <p>Learn, Remember, Master</p>
+        
+        <div class="stats">
+            <div class="stat-box">
+                <div class="stat-number" id="totalLeaders">0</div>
+                <div class="stat-label">Total Leaders</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-number" id="totalDepts">0</div>
+                <div class="stat-label">Departments</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-number" id="learnedCount">0</div>
+                <div class="stat-label">You've Learned</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <input type="text" class="search-box" id="searchBox" placeholder="🔍 Search by name or designation...">
+        
+        <div class="filter-buttons">
+            <button class="filter-btn active" data-filter="all">All</button>
+            <button class="filter-btn" data-filter="Founders">👑 Founders</button>
+            <button class="filter-btn" data-filter="Executive">💼 Executive</button>
+            <button class="filter-btn" data-filter="Business">📈 Business</button>
+            <button class="filter-btn" data-filter="Technology">💻 Technology</button>
+            <button class="filter-btn" data-filter="Finance">💰 Finance</button>
+            <button class="filter-btn" data-filter="Marketing">📢 Marketing</button>
+        </div>
+        
+        <button class="mode-toggle" id="modeToggle">🎓 Start Study Mode</button>
+    </div>
+
+    <div class="container">
+        <div class="team-grid" id="teamGrid"></div>
+        
+        <div class="study-mode-container" id="studyMode">
+            <div class="flashcard" id="flashcard">
+                <div class="flashcard-front">
+                    <div class="flashcard-name" id="flashcardName"></div>
+                    <div style="color: #999; margin-top: 20px;">Click to reveal role & details</div>
+                </div>
+                <div class="flashcard-back">
+                    <div class="flashcard-title" id="flashcardTitle"></div>
+                    <div class="flashcard-description" id="flashcardDesc"></div>
+                </div>
+            </div>
+            
+            <div class="study-controls">
+                <button class="study-btn know" id="knowBtn">✅ I Know This!</button>
+                <button class="study-btn review" id="reviewBtn">🔁 Need Review</button>
+                <button class="study-btn next" id="nextBtn">➡️ Next Card</button>
+            </div>
+            
+            <div class="study-progress" id="studyProgress">Card 1 of 34</div>
+        </div>
+    </div>
+
+    <div class="footer">
+        💪 Learn one role at a time. You've got this!
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
