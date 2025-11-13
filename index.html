@@ -68,6 +68,34 @@
         </div>
     </div>
 
+    <!-- ====== QUIZ SECTION (one-question-at-a-time) ====== -->
+    <div class="container quiz-container" id="quizSection">
+        <h2>📝 Quiz — Test Your Knowledge (35 Questions)</h2>
+        <div class="quiz-card" id="quizCard">
+            <div class="quiz-header">
+                <div id="quizProgress">Question 1 of 35</div>
+                <div id="quizScore">Score: 0</div>
+            </div>
+
+            <div class="quiz-body">
+                <div id="questionText" class="question-text">Question will appear here</div>
+                <div id="optionsList" class="options-list">
+                    <!-- option buttons appended here -->
+                </div>
+            </div>
+
+            <div class="quiz-controls">
+                <button id="prevQ" class="quiz-btn" disabled>◀ Previous</button>
+                <button id="submitQ" class="quiz-btn" disabled>Submit Answer</button>
+                <button id="nextQ" class="quiz-btn" disabled>Next ▶</button>
+            </div>
+
+            <div id="quizFooter" class="quiz-footer">
+                <!-- At end: show result and retake -->
+            </div>
+        </div>
+    </div>
+
     <div class="footer">
         💪 Learn one role at a time. You've got this!
     </div>
