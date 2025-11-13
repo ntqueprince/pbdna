@@ -247,6 +247,8 @@ const teamData = [
     }
 ];
 
+// ---------------- existing UI & features (unchanged) ----------------
+
 // Count animation
 function animateCount(element, target, duration = 2000) {
     let start = 0;
@@ -414,3 +416,275 @@ function createConfetti() {
 
 // Initial render
 renderTeamCards(teamData);
+
+// ---------------- NEW: Quiz Feature (one-question-at-a-time, 35 questions) ----------------
+
+/**
+ * Behavior:
+ * - Generate 35 questions based on teamData.
+ * - Each question: "Who is the '<title>'?"
+ * - Options: correct name + 3 random other names.
+ * - Questions order and options order are shuffled each page load.
+ */
+
+const QUIZ_LENGTH = 35;
+let quizQuestions = [];
+let currentQ = 0;
+let quizScore = 0;
+let userAnswers = []; // to store user's selected option index per question
+
+// Utility: shuffle array in-place
+function shuffleArray(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+}
+
+// Build quiz questions
+function generateQuizQuestions(n = QUIZ_LENGTH) {
+    const questions = [];
+    const names = teamData.map(p => p.name);
+
+    for (let i = 0; i < n; i++) {
+        // pick a random person as the correct one
+        const correctPerson = teamData[Math.floor(Math.random() * teamData.length)];
+        const questionText = `Who is the "${correctPerson.title}"?`;
+
+        // pick 3 distinct wrong names
+        const wrongPool = names.filter(nm => nm !== correctPerson.name);
+        shuffleArray(wrongPool);
+
+        // if wrongPool length < 3 (rare), allow repeats
+        const wrongOptions = wrongPool.slice(0, 3);
+
+        const options = [correctPerson.name, ...wrongOptions];
+        // shuffle options
+        shuffleArray(options);
+
+        const correctIndex = options.indexOf(correctPerson.name);
+
+        questions.push({
+            question: questionText,
+            options,
+            correctIndex,
+            correctName: correctPerson.name
+        });
+    }
+
+    // shuffle questions order
+    return shuffleArray(questions);
+}
+
+// Render a question
+function renderQuizQuestion(index) {
+    const total = quizQuestions.length;
+    const qObj = quizQuestions[index];
+
+    document.getElementById('quizProgress').textContent = `Question ${index + 1} of ${total}`;
+    document.getElementById('quizScore').textContent = `Score: ${quizScore}`;
+
+    // question text
+    document.getElementById('questionText').textContent = qObj.question;
+
+    // options
+    const optionsList = document.getElementById('optionsList');
+    optionsList.innerHTML = '';
+    qObj.options.forEach((opt, i) => {
+        const btn = document.createElement('button');
+        btn.className = 'option-btn';
+        btn.textContent = opt;
+        btn.dataset.index = i;
+        btn.addEventListener('click', () => selectOption(i));
+        optionsList.appendChild(btn);
+    });
+
+    // reset control buttons
+    document.getElementById('submitQ').disabled = true;
+    document.getElementById('nextQ').disabled = true;
+    document.getElementById('prevQ').disabled = (index === 0);
+    // provide previous answer highlight if user already answered
+    if (typeof userAnswers[index] !== 'undefined') {
+        highlightSelected(index, userAnswers[index], true);
+    } else {
+        clearOptionHighlights();
+    }
+}
+
+// select an option (does not auto submit)
+function selectOption(optionIndex) {
+    // enable submit
+    document.getElementById('submitQ').disabled = false;
+    // store temporarily the selected index for this question (but only finalize on submit)
+    // we will store in a temp attr on quizCard
+    const quizCard = document.getElementById('quizCard');
+    quizCard.dataset.selected = optionIndex;
+
+    highlightSelected(currentQ, optionIndex, false);
+}
+
+function highlightSelected(qIndex, optionIndex, readOnly) {
+    const optionBtns = document.querySelectorAll('#optionsList .option-btn');
+    optionBtns.forEach(btn => {
+        btn.classList.remove('selected', 'correct', 'wrong');
+    });
+    const chosen = optionBtns[optionIndex];
+    if (chosen) chosen.classList.add('selected');
+
+    // if readOnly true, mark correct/wrong colors
+    if (readOnly) {
+        const correctIdx = quizQuestions[qIndex].correctIndex;
+        if (optionBtns[correctIdx]) optionBtns[correctIdx].classList.add('correct');
+        if (optionBtns[optionIndex] && optionIndex !== correctIdx) optionBtns[optionIndex].classList.add('wrong');
+    }
+}
+
+function clearOptionHighlights() {
+    const optionBtns = document.querySelectorAll('#optionsList .option-btn');
+    optionBtns.forEach(btn => {
+        btn.classList.remove('selected', 'correct', 'wrong');
+    });
+}
+
+// submit answer for current question
+function submitAnswer() {
+    const quizCard = document.getElementById('quizCard');
+    const sel = quizCard.dataset.selected;
+    if (typeof sel === 'undefined') return;
+    const selIndex = Number(sel);
+    const qObj = quizQuestions[currentQ];
+
+    // if already answered before, don't double count (allow changing? here we keep first answer)
+    if (typeof userAnswers[currentQ] === 'undefined') {
+        userAnswers[currentQ] = selIndex;
+        if (selIndex === qObj.correctIndex) {
+            quizScore++;
+        }
+    } else {
+        // if changing previous answer: adjust score accordingly
+        const prev = userAnswers[currentQ];
+        if (prev !== selIndex) {
+            // adjust score
+            if (prev === qObj.correctIndex) quizScore--;
+            if (selIndex === qObj.correctIndex) quizScore++;
+            userAnswers[currentQ] = selIndex;
+        }
+    }
+
+    // lock UI for this question: show correct/wrong
+    highlightSelected(currentQ, selIndex, true);
+    document.getElementById('quizScore').textContent = `Score: ${quizScore}`;
+
+    // enable next if not last
+    document.getElementById('nextQ').disabled = (currentQ >= quizQuestions.length - 1);
+    // disable submit to avoid double submits
+    document.getElementById('submitQ').disabled = true;
+}
+
+// move to next question
+function nextQuestion() {
+    if (currentQ < quizQuestions.length - 1) {
+        currentQ++;
+        renderQuizQuestion(currentQ);
+        // if at the end after moving, ensure next button disabled appropriately
+        document.getElementById('nextQ').disabled = (currentQ >= quizQuestions.length - 1);
+    } else {
+        finishQuiz();
+    }
+}
+
+// move to previous question
+function prevQuestion() {
+    if (currentQ > 0) {
+        currentQ--;
+        renderQuizQuestion(currentQ);
+    }
+}
+
+// finish quiz: show summary / retake
+function finishQuiz() {
+    // hide controls and show final result
+    const quizFooter = document.getElementById('quizFooter');
+    quizFooter.innerHTML = `
+        <div class="quiz-result">
+            <h3>🎉 Quiz Complete!</h3>
+            <p>Your score: <strong>${quizScore} / ${quizQuestions.length}</strong></p>
+            <button id="retakeBtn" class="quiz-btn">🔁 Retake Quiz</button>
+            <button id="reviewAnswersBtn" class="quiz-btn">🕵️ Review Answers</button>
+        </div>
+    `;
+    // disable main controls
+    document.getElementById('submitQ').disabled = true;
+    document.getElementById('nextQ').disabled = true;
+    document.getElementById('prevQ').disabled = true;
+
+    document.getElementById('retakeBtn').addEventListener('click', () => {
+        initQuiz(); // restart
+    });
+
+    document.getElementById('reviewAnswersBtn').addEventListener('click', () => {
+        // show first question with answers highlighted in read-only mode
+        currentQ = 0;
+        renderQuizQuestion(currentQ);
+        // mark all answered questions readOnly
+        const total = quizQuestions.length;
+        const reviewFooter = document.getElementById('quizFooter');
+        reviewFooter.innerHTML = `<p>Use ◀ / ▶ to navigate and see highlighted correct/wrong answers.</p>`;
+        document.getElementById('prevQ').disabled = true;
+        document.getElementById('nextQ').disabled = false;
+        // allow prev/next
+        document.getElementById('submitQ').disabled = true;
+        // ensure each question shows correct/wrong (if answered)
+        if (typeof userAnswers[currentQ] !== 'undefined') {
+            highlightSelected(currentQ, userAnswers[currentQ], true);
+        } else {
+            // just highlight correct one
+            const correctIdx = quizQuestions[currentQ].correctIndex;
+            const optionBtns = document.querySelectorAll('#optionsList .option-btn');
+            optionBtns.forEach(btn => btn.classList.remove('selected','correct','wrong'));
+            if (optionBtns[correctIdx]) optionBtns[correctIdx].classList.add('correct');
+        }
+    });
+}
+
+// initialize quiz (generate, reset state, render first)
+function initQuiz() {
+    quizQuestions = generateQuizQuestions(QUIZ_LENGTH);
+    currentQ = 0;
+    quizScore = 0;
+    userAnswers = new Array(quizQuestions.length);
+    document.getElementById('quizFooter').innerHTML = '';
+    document.getElementById('nextQ').disabled = true;
+    document.getElementById('submitQ').disabled = true;
+    document.getElementById('prevQ').disabled = true;
+    // clear any selected data
+    const quizCard = document.getElementById('quizCard');
+    delete quizCard.dataset.selected;
+
+    renderQuizQuestion(currentQ);
+    document.getElementById('quizScore').textContent = `Score: ${quizScore}`;
+}
+
+// wire quiz control buttons
+document.addEventListener('DOMContentLoaded', () => {
+    // ensure quiz HTML elements exist
+    if (document.getElementById('quizSection')) {
+        document.getElementById('prevQ').addEventListener('click', () => {
+            prevQuestion();
+        });
+        document.getElementById('nextQ').addEventListener('click', () => {
+            // if at last question and next clicked -> finish
+            if (currentQ >= quizQuestions.length - 1) {
+                finishQuiz();
+            } else {
+                nextQuestion();
+            }
+        });
+        document.getElementById('submitQ').addEventListener('click', () => {
+            submitAnswer();
+        });
+
+        initQuiz();
+    }
+});
